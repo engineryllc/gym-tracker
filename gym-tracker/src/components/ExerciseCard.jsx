@@ -156,7 +156,7 @@ export default function ExerciseCard({
       <div className="set-list">
         {sets.map((s, i) => (
           <SetRow
-            key={s.setNumber}
+            key={`${exercise.id}-${s.setNumber}`}
             setNum={s.setNumber}
             targetReps={s.targetReps}
             targetWeight={s.targetWeight}
