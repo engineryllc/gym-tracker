@@ -99,6 +99,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 .set-row { display: grid; grid-template-columns: 28px 36px 1fr 64px 64px 36px; gap: 6px; align-items: center; padding: 8px 4px; border-radius: 6px; transition: background 0.15s; }
 .set-row:not(.set-done):not(.set-disabled):hover { background: var(--surface); }
 .set-row.set-done { opacity: 0.5; }
+.set-row.set-done.set-editing { opacity: 1; background: var(--surface); }
 .set-row.set-disabled { opacity: 0.4; pointer-events: none; }
 .set-num { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--text-muted); text-align: center; }
 .set-pct { font-size: 11px; color: var(--accent-dim); text-align: center; }
@@ -107,7 +108,14 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 .set-weight:disabled, .set-reps:disabled { opacity: 0.4; background: transparent; border-color: transparent; }
 .set-check { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--border); color: var(--text-muted); font-size: 14px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
 .set-check:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); background: rgba(232,255,71,0.08); }
-.set-check.checked { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 900; }
+.set-check.checked { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 900; cursor: pointer; }
+.set-row.set-editing { grid-template-columns: 28px 36px 1fr 64px 64px auto; }
+.set-edit-buttons { display: flex; gap: 4px; }
+.set-save, .set-cancel { padding: 6px 10px; font-size: 12px; border-radius: 4px; font-weight: 600; transition: all 0.15s; }
+.set-save { background: var(--success); color: var(--bg); border: 1px solid var(--success); }
+.set-save:hover { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+.set-cancel { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+.set-cancel:hover { color: var(--text); border-color: var(--text); }
 
 .rest-timer { position: absolute; inset: 0; background: rgba(13,13,15,0.92); backdrop-filter: blur(4px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer; z-index: 10; border-radius: var(--radius); }
 .rest-timer-inner { position: relative; }
@@ -188,8 +196,11 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 .add-exercise-form input { flex: 1; max-width: 300px; }
 .exercise-library { display: flex; flex-direction: column; gap: 4px; }
 .exercise-lib-item { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
-.exercise-lib-name { padding: 10px 14px; font-family: var(--font-display); font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+.exercise-lib-header { display: flex; align-items: center; gap: 8px; }
+.exercise-lib-name { flex: 1; padding: 10px 14px; font-family: var(--font-display); font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
 .exercise-lib-name:hover { background: var(--surface2); }
+.exercise-lib-item .delete-btn { padding: 8px 12px; margin-right: 8px; color: var(--danger); border: 1px solid transparent; border-radius: 4px; transition: all 0.15s; cursor: pointer; }
+.exercise-lib-item .delete-btn:hover { background: rgba(255,68,68,0.1); border-color: var(--danger); }
 .exercise-lib-edit { padding: 14px; border-top: 1px solid var(--border); background: var(--bg); display: flex; flex-direction: column; gap: 10px; }
 .media-preview { max-width: 200px; border-radius: 6px; margin-top: 4px; }
 .suggestions-banner { background: rgba(255,170,0,0.1); border: 1px solid var(--warning); color: var(--warning); border-radius: 6px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; }

@@ -19,6 +19,14 @@ export default function ExerciseCard({
   const [completedSets, setCompletedSets] = useState([])
   const [allDone, setAllDone] = useState(false)
 
+  // Reset state when exercise changes
+  useEffect(() => {
+    setCompletedSets([])
+    setAllDone(false)
+    setRestActive(false)
+    setRestSeconds(config?.rest_seconds || 90)
+  }, [exercise?.id, config?.rest_seconds])
+
   const isMainLift = config?.is_main_lift && mainLiftProgress
   const cycleWeek = mainLiftProgress?.cycle_week || 1
   const sets = isMainLift
@@ -55,6 +63,38 @@ export default function ExerciseCard({
     // Check if all sets done
     if (newCompleted.length >= sets.length) {
       setTimeout(() => finishExercise(newCompleted), 300)
+    }
+  }
+
+  async function handleSetEdit(setData) {
+    // Update the completed set in state
+    const updated = completedSets.map(s =>
+      s.setNumber === setData.setNumber
+        ? { ...s, repsCompleted: setData.repsCompleted, weightUsed: setData.weightUsed }
+        : s
+    )
+    setCompletedSets(updated)
+
+    // Update in Supabase - find the log by user, exercise, set number
+    // Assuming it was logged today
+    const today = new Date().toISOString().split('T')[0]
+    const { data: logs } = await supabase
+      .from('workout_logs')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('exercise_id', exercise.id)
+      .eq('set_number', setData.setNumber)
+      .gte('logged_at', today)
+      .order('logged_at', { ascending: false })
+      .limit(1)
+
+    if (logs && logs.length > 0) {
+      await supabase.from('workout_logs')
+        .update({
+          reps_completed: setData.repsCompleted,
+          weight_used: setData.weightUsed,
+        })
+        .eq('id', logs[0].id)
     }
   }
 
@@ -123,6 +163,7 @@ export default function ExerciseCard({
             pct={s.pct}
             previousLog={getPrevLog(s.setNumber)}
             onComplete={handleSetComplete}
+            onSetEdit={handleSetEdit}
             disabled={completedSets.length < i}
           />
         ))}

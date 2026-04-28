@@ -101,6 +101,27 @@ export default function AdminView() {
     showToast('Exercise updated')
   }
 
+  async function deleteExercise(id, name) {
+    if (!window.confirm(`Delete exercise "${name}"? This cannot be undone.`)) return
+    setLoading(true)
+    try {
+      // Delete related records first
+      await supabase.from('schedules').delete().eq('exercise_id', id)
+      await supabase.from('exercise_config').delete().eq('exercise_id', id)
+      await supabase.from('main_lift_progress').delete().eq('exercise_id', id)
+      await supabase.from('accessory_weights').delete().eq('exercise_id', id)
+      await supabase.from('workout_logs').delete().eq('exercise_id', id)
+      // Finally delete the exercise
+      await supabase.from('exercises').delete().eq('id', id)
+      setExercises(e => e.filter(ex => ex.id !== id))
+      showToast(`Deleted exercise: ${name}`)
+    } catch (err) {
+      showToast(`Error deleting exercise: ${err.message}`, 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // --- Schedule management ---
   async function addToSchedule(exerciseId) {
     const ex = exercises.find(e => e.id === exerciseId)
@@ -258,6 +279,7 @@ export default function AdminView() {
             exercises={exercises}
             onAdd={addExercise}
             onUpdate={updateExercise}
+            onDelete={deleteExercise}
           />
         )}
         {tab === 'weights' && selectedUser && (
@@ -390,7 +412,7 @@ function ScheduleTab({ days, selectedDay, onDayChange, schedule, exercises, conf
   )
 }
 
-function ExercisesTab({ exercises, onAdd, onUpdate }) {
+function ExercisesTab({ exercises, onAdd, onUpdate, onDelete }) {
   const [newName, setNewName] = useState('')
   const [editing, setEditing] = useState(null)
   const [editData, setEditData] = useState({})
@@ -412,11 +434,14 @@ function ExercisesTab({ exercises, onAdd, onUpdate }) {
       <div className="exercise-library">
         {exercises.map(ex => (
           <div key={ex.id} className="exercise-lib-item">
-            <div className="exercise-lib-name" onClick={() => {
-              setEditing(editing === ex.id ? null : ex.id)
-              setEditData({ default_tempo: ex.default_tempo, cue_text: ex.cue_text, media_url: ex.media_url })
-            }}>
-              {ex.name}
+            <div className="exercise-lib-header">
+              <div className="exercise-lib-name" onClick={() => {
+                setEditing(editing === ex.id ? null : ex.id)
+                setEditData({ default_tempo: ex.default_tempo, cue_text: ex.cue_text, media_url: ex.media_url })
+              }}>
+                {ex.name}
+              </div>
+              <button className="delete-btn" title="Delete exercise" onClick={() => onDelete(ex.id, ex.name)}>✕</button>
             </div>
             {editing === ex.id && (
               <div className="exercise-lib-edit">
