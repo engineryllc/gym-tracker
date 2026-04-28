@@ -74,13 +74,18 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 @keyframes spin { to { transform: rotate(360deg); } }
 .loading-text, .rest-day-text, .complete-text { font-family: var(--font-display); font-size: 24px; font-weight: 700; letter-spacing: 0.1em; }
 .rest-day-icon, .complete-icon { font-size: 48px; }
-.rest-day-sub, .complete-sub { color: var(--text-muted); font-size: 12px; }
+.rest-day-sub, .complete-sub { color: var(--text-muted); font-size: 12px; display: flex; align-items: center; gap: 8px; }
+.rest-day-sub .day-select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); padding: 3px 6px; font-size: 11px; }
 
-.column-header { padding: 10px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; flex-shrink: 0; background: var(--surface); }
+.column-header { padding: 10px 16px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; background: var(--surface); }
+.column-header-top { display: flex; align-items: center; gap: 12px; }
 .column-name { font-family: var(--font-display); font-size: 18px; font-weight: 900; letter-spacing: 0.15em; text-transform: uppercase; min-width: 48px; }
 .workout-column:first-child .column-name { color: var(--andy); }
 .workout-column:last-child .column-name { color: var(--ali); }
-.column-progress-bar { flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.day-select { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 4px 8px; font-size: 12px; font-family: var(--font-mono); cursor: pointer; min-width: 100px; }
+.day-select:hover { border-color: var(--accent); }
+.day-select:focus { border-color: var(--accent); outline: none; }
+.column-progress-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
 .column-progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.4s ease; }
 .column-progress-text { font-size: 11px; color: var(--text-muted); }
 

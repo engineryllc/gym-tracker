@@ -10,13 +10,15 @@ export default function RestTimer({ seconds, onDismiss }) {
       setRemaining(prev => {
         if (prev <= 1) {
           clearInterval(intervalRef.current)
+          // Auto-dismiss when timer reaches 0
+          onDismiss()
           return 0
         }
         return prev - 1
       })
     }, 1000)
     return () => clearInterval(intervalRef.current)
-  }, [seconds])
+  }, [seconds, onDismiss])
 
   const pct = remaining / seconds
   const circumference = 2 * Math.PI * 28

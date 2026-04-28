@@ -60,9 +60,10 @@ export default function ExerciseCard({
     setRestSeconds(config?.rest_seconds || 90)
     setRestActive(true)
 
-    // Check if all sets done
+    // Check if all sets done - if so, wait for timer to finish
+    // The timer will call onDismiss when it expires, which will trigger finishExercise
     if (newCompleted.length >= sets.length) {
-      setTimeout(() => finishExercise(newCompleted), 300)
+      // Don't finishExercise here - let the timer finish first
     }
   }
 
@@ -171,7 +172,16 @@ export default function ExerciseCard({
 
       {/* Rest timer */}
       {restActive && (
-        <RestTimer seconds={restSeconds} onDismiss={() => setRestActive(false)} />
+        <RestTimer 
+          seconds={restSeconds} 
+          onDismiss={() => {
+            setRestActive(false)
+            // If all sets are done and timer finished, move to next exercise
+            if (completedSets.length >= sets.length) {
+              finishExercise(completedSets)
+            }
+          }} 
+        />
       )}
 
       {/* Next up */}

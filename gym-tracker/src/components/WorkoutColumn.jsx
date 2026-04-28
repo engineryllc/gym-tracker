@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import ExerciseCard from './ExerciseCard'
 import InstructionPanel from './InstructionPanel'
 import { supabase } from '../supabase'
-import { getTodayName } from '../utils/progression'
+import { getTodayName, DAYS_OF_WEEK } from '../utils/progression'
 
 export default function WorkoutColumn({ userId, userName, soloInstructionMode }) {
   const [schedule, setSchedule] = useState([]) // ordered exercises for today
@@ -14,22 +14,27 @@ export default function WorkoutColumn({ userId, userName, soloInstructionMode })
   const [loading, setLoading] = useState(true)
   const [showingNextInstruction, setShowingNextInstruction] = useState(false)
   const [workoutDone, setWorkoutDone] = useState(false)
+  const [selectedDay, setSelectedDay] = useState(getTodayName())
 
-  const today = getTodayName()
+  useEffect(() => {
+    setSelectedDay(getTodayName())
+    setCurrentIndex(0)
+    setWorkoutDone(false)
+  }, [userId])
 
   useEffect(() => {
     loadWorkout()
-  }, [userId])
+  }, [userId, selectedDay])
 
   async function loadWorkout() {
     setLoading(true)
 
-    // Load today's schedule
+    // Load schedule for selected day
     const { data: schedData } = await supabase
       .from('schedules')
       .select('sort_order, exercises(*)')
       .eq('user_id', userId)
-      .eq('day_of_week', today)
+      .eq('day_of_week', selectedDay)
       .order('sort_order')
 
     if (!schedData || schedData.length === 0) {
@@ -118,7 +123,11 @@ export default function WorkoutColumn({ userId, userName, soloInstructionMode })
     <div className="workout-column rest-day">
       <div className="rest-day-icon">🏖</div>
       <div className="rest-day-text">Rest day</div>
-      <div className="rest-day-sub">{today} · {userName}</div>
+      <div className="rest-day-sub">
+        <select className="day-select" value={selectedDay} onChange={e => setSelectedDay(e.target.value)}>
+          {DAYS_OF_WEEK.map(d => <option key={d} value={d}>{d}</option>)}
+        </select> · {userName}
+      </div>
     </div>
   )
 
@@ -144,7 +153,12 @@ export default function WorkoutColumn({ userId, userName, soloInstructionMode })
     <div className="workout-column">
       {/* Column header */}
       <div className="column-header">
-        <div className="column-name">{userName}</div>
+        <div className="column-header-top">
+          <div className="column-name">{userName}</div>
+          <select className="day-select" value={selectedDay} onChange={e => setSelectedDay(e.target.value)}>
+            {DAYS_OF_WEEK.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+        </div>
         <div className="column-progress-bar">
           <div className="column-progress-fill" style={{ width: `${progress * 100}%` }} />
         </div>
