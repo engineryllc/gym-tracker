@@ -143,7 +143,7 @@ export default function AdminView() {
         sets: 3,
         rep_target: '8-12',
         rest_seconds: 90,
-      })
+      }, { onConflict: ['user_id', 'exercise_id'] })
       setConfigs(c => ({ ...c, [exerciseId]: { sets: 3, rep_target: '8-12', rest_seconds: 90 } }))
     }
 

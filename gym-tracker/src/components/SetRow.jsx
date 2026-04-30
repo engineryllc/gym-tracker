@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react'
 
 export default function SetRow({ setNum, targetReps, targetWeight, pct, previousLog, onComplete, onSetEdit, disabled }) {
-  const [weight, setWeight] = useState(targetWeight ?? '')
+  const [weight, setWeight] = useState(() => {
+    // Initialize with previous log weight if available, otherwise use target weight if it's > 0, else empty
+    if (targetWeight && targetWeight > 0) return targetWeight
+    if (previousLog?.weight_used) return previousLog.weight_used
+    return ''
+  })
   const [reps, setReps] = useState('')
   const [done, setDone] = useState(false)
   const [editing, setEditing] = useState(false)
@@ -59,7 +64,7 @@ export default function SetRow({ setNum, targetReps, targetWeight, pct, previous
         value={weight}
         onChange={e => setWeight(e.target.value)}
         disabled={done && !editing}
-        placeholder="lb"
+        placeholder={targetWeight > 0 ? String(targetWeight) : 'lb'}
       />
 
       <input
