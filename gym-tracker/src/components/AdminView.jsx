@@ -78,13 +78,26 @@ export default function AdminView() {
   }
 
   async function loadHistory() {
-    const { data } = await supabase
-      .from('workout_logs')
-      .select('*, exercises(name)')
-      .eq('user_id', selectedUser.id)
-      .order('logged_at', { ascending: false })
-      .limit(200)
-    setHistory(data || [])
+    const [{ data: workoutData }, { data: cardioData }] = await Promise.all([
+      supabase
+        .from('workout_logs')
+        .select('*, exercises(name)')
+        .eq('user_id', selectedUser.id)
+        .order('logged_at', { ascending: false })
+        .limit(200),
+      supabase
+        .from('cardio_logs')
+        .select('*, exercises(name)')
+        .eq('user_id', selectedUser.id)
+        .order('logged_at', { ascending: false })
+        .limit(200),
+    ])
+    // Combine both logs with type indicator
+    const combined = [
+      ...(workoutData || []).map(l => ({ ...l, type: 'strength' })),
+      ...(cardioData || []).map(l => ({ ...l, type: 'cardio' })),
+    ]
+    setHistory(combined)
   }
 
   // --- Exercise CRUD ---
@@ -336,7 +349,9 @@ function ScheduleTab({ days, selectedDay, onDayChange, schedule, exercises, conf
                 <div className="schedule-item-order">{idx + 1}</div>
                 <div className="schedule-item-name">{ex.name}</div>
                 <div className="schedule-item-meta">
-                  {cfg.sets}×{cfg.rep_target} {cfg.is_main_lift ? '🏋️' : ''}
+                  {cfg.exercise_type === 'cardio' 
+                    ? `${cfg.target_duration ? cfg.target_duration + ' min' : 'Cardio'} ${cfg.target_distance ? '@ ' + cfg.target_distance : ''}`
+                    : `${cfg.sets}×${cfg.rep_target} ${cfg.is_main_lift ? '🏋️' : ''}`}
                 </div>
                 <div className="schedule-item-actions">
                   <button onClick={e => { e.stopPropagation(); onMove(s.id, -1) }}>↑</button>
@@ -348,44 +363,67 @@ function ScheduleTab({ days, selectedDay, onDayChange, schedule, exercises, conf
               {isOpen && (
                 <div className="schedule-item-config">
                   <div className="config-row">
-                    <label>Sets</label>
-                    <input type="number" defaultValue={cfg.sets} onBlur={e => onUpdateConfig(ex.id, { sets: parseInt(e.target.value) })} />
+                    <label>Exercise Type</label>
+                    <select defaultValue={cfg.exercise_type || 'strength'} onChange={e => onUpdateConfig(ex.id, { exercise_type: e.target.value })}>
+                      <option value="strength">Strength</option>
+                      <option value="cardio">Cardio</option>
+                    </select>
                   </div>
-                  <div className="config-row">
-                    <label>Rep Target</label>
-                    <input defaultValue={cfg.rep_target} onBlur={e => onUpdateConfig(ex.id, { rep_target: e.target.value })} />
-                  </div>
-                  <div className="config-row">
-                    <label>Tempo</label>
-                    <input defaultValue={cfg.tempo || ex.default_tempo} onBlur={e => onUpdateConfig(ex.id, { tempo: e.target.value })} />
-                  </div>
-                  <div className="config-row">
-                    <label>Rest (sec)</label>
-                    <input type="number" defaultValue={cfg.rest_seconds} onBlur={e => onUpdateConfig(ex.id, { rest_seconds: parseInt(e.target.value) })} />
-                  </div>
-                  <div className="config-row">
-                    <label>Main Lift (1RM)</label>
-                    <input type="checkbox" checked={!!cfg.is_main_lift} onChange={e => onToggleMainLift(ex.id, e.target.checked)} />
-                  </div>
-                  {cfg.is_main_lift && ml && (
+
+                  {cfg.exercise_type === 'cardio' ? (
                     <>
                       <div className="config-row">
-                        <label>1RM (lb)</label>
-                        <input type="number" defaultValue={ml.one_rep_max} onBlur={e => onUpdateMainLift(ex.id, { one_rep_max: parseFloat(e.target.value) })} />
+                        <label>Target Duration (min)</label>
+                        <input type="number" defaultValue={cfg.target_duration || ''} onBlur={e => onUpdateConfig(ex.id, { target_duration: parseInt(e.target.value) || null })} placeholder="Optional" />
                       </div>
                       <div className="config-row">
-                        <label>Cycle Week</label>
-                        <select defaultValue={ml.cycle_week} onChange={e => onUpdateMainLift(ex.id, { cycle_week: parseInt(e.target.value) })}>
-                          {[1, 2, 3, 4].map(w => <option key={w} value={w}>{CYCLE_LABELS[w]}</option>)}
-                        </select>
+                        <label>Target Distance</label>
+                        <input type="number" step="0.1" defaultValue={cfg.target_distance || ''} onBlur={e => onUpdateConfig(ex.id, { target_distance: parseFloat(e.target.value) || null })} placeholder="Optional" />
                       </div>
-                      <div className="main-lift-preview">
-                        {getMainLiftSets(ml.one_rep_max, ml.cycle_week).map(s => (
-                          <div key={s.setNumber} className="lift-preview-row">
-                            Set {s.setNumber}: {s.pct}% → <strong>{s.targetWeight} lb</strong> × {s.targetReps}
+                    </>
+                  ) : (
+                    <>
+                      <div className="config-row">
+                        <label>Sets</label>
+                        <input type="number" defaultValue={cfg.sets} onBlur={e => onUpdateConfig(ex.id, { sets: parseInt(e.target.value) })} />
+                      </div>
+                      <div className="config-row">
+                        <label>Rep Target</label>
+                        <input defaultValue={cfg.rep_target} onBlur={e => onUpdateConfig(ex.id, { rep_target: e.target.value })} />
+                      </div>
+                      <div className="config-row">
+                        <label>Tempo</label>
+                        <input defaultValue={cfg.tempo || ex.default_tempo} onBlur={e => onUpdateConfig(ex.id, { tempo: e.target.value })} />
+                      </div>
+                      <div className="config-row">
+                        <label>Rest (sec)</label>
+                        <input type="number" defaultValue={cfg.rest_seconds} onBlur={e => onUpdateConfig(ex.id, { rest_seconds: parseInt(e.target.value) })} />
+                      </div>
+                      <div className="config-row">
+                        <label>Main Lift (1RM)</label>
+                        <input type="checkbox" checked={!!cfg.is_main_lift} onChange={e => onToggleMainLift(ex.id, e.target.checked)} />
+                      </div>
+                      {cfg.is_main_lift && ml && (
+                        <>
+                          <div className="config-row">
+                            <label>1RM (lb)</label>
+                            <input type="number" defaultValue={ml.one_rep_max} onBlur={e => onUpdateMainLift(ex.id, { one_rep_max: parseFloat(e.target.value) })} />
                           </div>
-                        ))}
-                      </div>
+                          <div className="config-row">
+                            <label>Cycle Week</label>
+                            <select defaultValue={ml.cycle_week} onChange={e => onUpdateMainLift(ex.id, { cycle_week: parseInt(e.target.value) })}>
+                              {[1, 2, 3, 4].map(w => <option key={w} value={w}>{CYCLE_LABELS[w]}</option>)}
+                            </select>
+                          </div>
+                          <div className="main-lift-preview">
+                            {getMainLiftSets(ml.one_rep_max, ml.cycle_week).map(s => (
+                              <div key={s.setNumber} className="lift-preview-row">
+                                Set {s.setNumber}: {s.pct}% → <strong>{s.targetWeight} lb</strong> × {s.targetReps}
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
                     </>
                   )}
                 </div>
@@ -552,8 +590,8 @@ function HistoryTab({ history }) {
   history.forEach(l => {
     const date = new Date(l.logged_at).toLocaleDateString()
     const key = `${date}__${l.exercises?.name}`
-    if (!grouped[key]) grouped[key] = { date, name: l.exercises?.name, sets: [] }
-    grouped[key].sets.push(l)
+    if (!grouped[key]) grouped[key] = { date, name: l.exercises?.name, type: l.type, logs: [] }
+    grouped[key].logs.push(l)
   })
 
   return (
@@ -566,12 +604,20 @@ function HistoryTab({ history }) {
             <span className="history-date">{g.date}</span>
             <span className="history-ex">{g.name}</span>
           </div>
-          <div className="history-sets">
-            {g.sets.sort((a, b) => a.set_number - b.set_number).map(s => (
-              <div key={s.id} className="history-set-row">
-                Set {s.set_number}: {s.weight_used} lb × {s.reps_completed} reps
-              </div>
-            ))}
+          <div className="history-logs">
+            {g.type === 'cardio' ? (
+              g.logs.map(l => (
+                <div key={l.id} className="history-cardio-row">
+                  {l.duration_minutes} min {l.distance ? `@ ${l.distance}` : ''} • RPE {l.rpe} {l.notes ? `• ${l.notes}` : ''}
+                </div>
+              ))
+            ) : (
+              g.logs.sort((a, b) => a.set_number - b.set_number).map(s => (
+                <div key={s.id} className="history-set-row">
+                  Set {s.set_number}: {s.weight_used} lb × {s.reps_completed} reps
+                </div>
+              ))
+            )}
           </div>
         </div>
       ))}

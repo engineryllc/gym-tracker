@@ -132,6 +132,23 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 .next-name { font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--text-muted); }
 .card-complete-banner { text-align: center; padding: 10px; background: rgba(68,255,136,0.08); border: 1px solid var(--success); border-radius: 6px; color: var(--success); font-family: var(--font-display); font-size: 16px; font-weight: 700; letter-spacing: 0.1em; }
 
+/* Cardio Card */
+.cardio-card { background: var(--bg); padding: 16px; display: flex; flex-direction: column; gap: 12px; position: relative; overflow-y: auto; }
+.cardio-form { display: flex; flex-direction: column; gap: 16px; }
+.cardio-field { display: flex; flex-direction: column; gap: 6px; }
+.cardio-field label { font-size: 11px; font-family: var(--font-display); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+.cardio-field input, .cardio-field textarea { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 10px; font-family: var(--font-mono); font-size: 14px; }
+.cardio-field input:focus, .cardio-field textarea:focus { border-color: var(--accent); outline: none; }
+.rpe-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
+.rpe-btn { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--text-muted); font-family: var(--font-mono); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+.rpe-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); background: rgba(232,255,71,0.08); }
+.rpe-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 900; }
+.rpe-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.cardio-complete-btn { background: var(--accent); color: var(--bg); border: none; border-radius: 6px; padding: 12px 20px; font-family: var(--font-display); font-size: 16px; font-weight: 700; letter-spacing: 0.15em; cursor: pointer; transition: all 0.15s; text-transform: uppercase; margin-top: 8px; }
+.cardio-complete-btn:hover:not(:disabled) { background: var(--accent-dim); }
+.cardio-complete-btn:disabled { opacity: 0.5; cursor: not-allowed; background: var(--text-dim); }
+.cardio-complete-btn.completed { background: var(--success); }
+
 .instruction-panel { background: var(--surface); display: flex; flex-direction: column; overflow-y: auto; border-left: 1px solid var(--border); }
 .instruction-empty { align-items: center; justify-content: center; }
 .instruction-empty-text { color: var(--text-muted); }
@@ -230,6 +247,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 .history-ex { font-family: var(--font-display); font-size: 15px; font-weight: 700; }
 .history-sets { padding: 10px 14px; display: flex; flex-direction: column; gap: 4px; }
 .history-set-row { font-size: 12px; color: var(--text-muted); }
+.history-cardio-row { font-size: 12px; color: var(--text-muted); }
 .admin-toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; border-radius: 8px; font-family: var(--font-display); font-size: 15px; font-weight: 600; letter-spacing: 0.05em; z-index: 9999; animation: slideUp 0.2s ease; }
 .admin-toast.success { background: var(--success); color: var(--bg); }
 .admin-toast.error { background: var(--danger); color: white; }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import ExerciseCard from './ExerciseCard'
+import CardioCard from './CardioCard'
 import InstructionPanel from './InstructionPanel'
 import { supabase } from '../supabase'
 import { getTodayName, DAYS_OF_WEEK } from '../utils/progression'
@@ -11,6 +12,7 @@ export default function WorkoutColumn({ userId, userName, soloInstructionMode })
   const [mainLifts, setMainLifts] = useState({})
   const [accessoryWeights, setAccessoryWeights] = useState({})
   const [previousLogs, setPreviousLogs] = useState({})
+  const [previousCardioLogs, setPreviousCardioLogs] = useState({})
   const [loading, setLoading] = useState(true)
   const [showingNextInstruction, setShowingNextInstruction] = useState(false)
   const [workoutDone, setWorkoutDone] = useState(false)
@@ -100,6 +102,21 @@ export default function WorkoutColumn({ userId, userName, soloInstructionMode })
     })
     setPreviousLogs(logMap)
 
+    // Load cardio logs (last session per exercise)
+    const { data: cardioData } = await supabase
+      .from('cardio_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .in('exercise_id', exerciseIds)
+      .order('logged_at', { ascending: false })
+
+    const cardioMap = {}
+    cardioData?.forEach(c => {
+      const key = c.exercise_id
+      if (!cardioMap[key]) cardioMap[key] = c
+    })
+    setPreviousCardioLogs(cardioMap)
+
     setLoading(false)
   }
 
@@ -145,6 +162,8 @@ export default function WorkoutColumn({ userId, userName, soloInstructionMode })
   const mainLift = mainLifts[currentExercise?.id]
   const accessory = accessoryWeights[currentExercise?.id]
   const prevLogs = previousLogs[currentExercise?.id] || []
+  const prevCardioLog = previousCardioLogs[currentExercise?.id] || null
+  const isCardio = config?.exercise_type === 'cardio'
 
   // Progress bar
   const progress = currentIndex / schedule.length
@@ -167,8 +186,8 @@ export default function WorkoutColumn({ userId, userName, soloInstructionMode })
 
       {/* Main content */}
       <div className="column-content">
-        {soloInstructionMode ? (
-          // Solo mode: tracker left, instruction right
+        {soloInstructionMode && !isCardio ? (
+          // Solo mode: tracker left, instruction right (strength only)
           <>
             <ExerciseCard
               exercise={currentExercise}
@@ -187,6 +206,15 @@ export default function WorkoutColumn({ userId, userName, soloInstructionMode })
               onShowNext={() => setShowingNextInstruction(v => !v)}
             />
           </>
+        ) : isCardio ? (
+          <CardioCard
+            exercise={currentExercise}
+            config={config}
+            previousLog={prevCardioLog}
+            nextExerciseName={nextExercise?.name}
+            onExerciseComplete={handleExerciseComplete}
+            userId={userId}
+          />
         ) : (
           <ExerciseCard
             exercise={currentExercise}
