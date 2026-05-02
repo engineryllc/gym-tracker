@@ -99,31 +99,36 @@ export default function ExerciseCard({
     }
   }
 
-  async function finishExercise(allSets) {
-    setAllDone(true)
+async function finishExercise(allSets) {
+  setAllDone(true)
 
-    // Check 1RM bump for Andy's main lift
-    if (isMainLift && shouldBump1RM(allSets[allSets.length - 1]?.repsCompleted, cycleWeek)) {
-      const newMax = mainLiftProgress.one_rep_max + 5
-      await supabase.from('main_lift_progress')
-        .update({ one_rep_max: newMax })
+  if (isMainLift) {
+    const lastReps = allSets[allSets.length - 1]?.repsCompleted
+    const bumped = shouldBump1RM(lastReps, cycleWeek)
+    const nextWeek = cycleWeek >= 4 ? 1 : cycleWeek + 1
+
+    const updates = { cycle_week: nextWeek }
+    if (bumped) updates.one_rep_max = mainLiftProgress.one_rep_max + 5
+
+    await supabase.from('main_lift_progress')
+      .update(updates)
+      .eq('user_id', userId)
+      .eq('exercise_id', exercise.id)
+  }
+
+  // Check accessory weight suggestion
+  if (!isMainLift && allSets.length > 0) {
+    const lastSet = allSets[allSets.length - 1]
+    if (shouldSuggestIncrease(lastSet.repsCompleted, config?.rep_target)) {
+      await supabase.from('accessory_weights')
+        .update({ increase_suggested: true })
         .eq('user_id', userId)
         .eq('exercise_id', exercise.id)
     }
-
-    // Check accessory weight suggestion
-    if (!isMainLift && allSets.length > 0) {
-      const lastSet = allSets[allSets.length - 1]
-      if (shouldSuggestIncrease(lastSet.repsCompleted, config?.rep_target)) {
-        await supabase.from('accessory_weights')
-          .update({ increase_suggested: true })
-          .eq('user_id', userId)
-          .eq('exercise_id', exercise.id)
-      }
-    }
-
-    onExerciseComplete()
   }
+
+  onExerciseComplete()
+}
 
   const getPrevLog = (setNum) => previousLogs?.find(l => l.set_number === setNum) || null
 

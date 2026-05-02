@@ -26,6 +26,11 @@ export default function SessionSelect({ onSelect }) {
             <span className="btn-sub">Solo session</span>
           </button>
         </div>
+        <div className="session-footer">
+          <button className="session-admin-btn" onClick={() => window.location.href = '/admin'}>
+            ⚙️ Edit Workouts
+          </button>
+        </div>
       </div>
     </div>
   )
