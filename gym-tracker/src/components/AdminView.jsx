@@ -148,24 +148,43 @@ export default function AdminView() {
     }).select('*, exercises(*)').single()
     setSchedule(s => [...s, data])
 
-    // Create default config if none
-    if (!configs[exerciseId]) {
-      await supabase.from('exercise_config').upsert({
-        user_id: selectedUser.id,
-        exercise_id: exerciseId,
-        sets: 3,
-        rep_target: '8-12',
-        rest_seconds: 90,
-      }, { onConflict: ['user_id', 'exercise_id'] })
-      setConfigs(c => ({ ...c, [exerciseId]: { sets: 3, rep_target: '8-12', rest_seconds: 90 } }))
+    // Create default config with all required fields
+    const { error: cfgError } = await supabase.from('exercise_config').upsert({
+      user_id: selectedUser.id,
+      exercise_id: exerciseId,
+      sets: 3,
+      rep_target: '8-12',
+      rest_seconds: 60,
+      is_main_lift: false,
+      tempo: null,
+      exercise_type: 'strength',
+    }, { onConflict: 'user_id,exercise_id' })
+    
+    if (cfgError) {
+      showToast(`Error creating config: ${cfgError.message}`, 'error')
+    } else {
+      // Reload configs to ensure they're synced
+      const { data: cfgData } = await supabase
+        .from('exercise_config')
+        .select('*')
+        .eq('user_id', selectedUser.id)
+        .eq('exercise_id', exerciseId)
+      if (cfgData?.length > 0) {
+        setConfigs(c => ({ ...c, [exerciseId]: cfgData[0] }))
+      }
     }
 
     // Create default accessory weight
-    await supabase.from('accessory_weights').upsert({
+    const { error: awError } = await supabase.from('accessory_weights').upsert({
       user_id: selectedUser.id,
       exercise_id: exerciseId,
       working_weight: 0,
-    })
+      increase_suggested: false,
+    }, { onConflict: 'user_id,exercise_id' })
+
+    if (awError) {
+      showToast(`Error creating weight: ${awError.message}`, 'error')
+    }
 
     showToast(`Added ${ex.name} to ${selectedDay}`)
   }
@@ -190,9 +209,13 @@ export default function AdminView() {
   }
 
   async function updateConfig(exerciseId, fields) {
-    await supabase.from('exercise_config').update(fields)
+    const { error } = await supabase.from('exercise_config').update(fields)
       .eq('user_id', selectedUser.id)
       .eq('exercise_id', exerciseId)
+    if (error) {
+      showToast(`Error saving config: ${error.message}`, 'error')
+      return
+    }
     setConfigs(c => ({ ...c, [exerciseId]: { ...c[exerciseId], ...fields } }))
     showToast('Config saved')
   }
@@ -385,19 +408,19 @@ function ScheduleTab({ days, selectedDay, onDayChange, schedule, exercises, conf
                     <>
                       <div className="config-row">
                         <label>Sets</label>
-                        <input type="number" defaultValue={cfg.sets} onBlur={e => onUpdateConfig(ex.id, { sets: parseInt(e.target.value) })} />
+                        <input type="number" defaultValue={cfg.sets ?? 3} onBlur={e => onUpdateConfig(ex.id, { sets: parseInt(e.target.value) || 3 })} />
                       </div>
                       <div className="config-row">
                         <label>Rep Target</label>
-                        <input defaultValue={cfg.rep_target} onBlur={e => onUpdateConfig(ex.id, { rep_target: e.target.value })} />
+                        <input defaultValue={cfg.rep_target ?? '8-12'} onBlur={e => onUpdateConfig(ex.id, { rep_target: e.target.value || '8-12' })} />
                       </div>
                       <div className="config-row">
                         <label>Tempo</label>
-                        <input defaultValue={cfg.tempo || ex.default_tempo} onBlur={e => onUpdateConfig(ex.id, { tempo: e.target.value })} />
+                        <input defaultValue={cfg.tempo || ex.default_tempo || ''} onBlur={e => onUpdateConfig(ex.id, { tempo: e.target.value })} />
                       </div>
                       <div className="config-row">
                         <label>Rest (sec)</label>
-                        <input type="number" defaultValue={cfg.rest_seconds} onBlur={e => onUpdateConfig(ex.id, { rest_seconds: parseInt(e.target.value) })} />
+                        <input type="number" defaultValue={cfg.rest_seconds ?? 90} onBlur={e => onUpdateConfig(ex.id, { rest_seconds: parseInt(e.target.value) || 90 })} />
                       </div>
                       <div className="config-row">
                         <label>Main Lift (1RM)</label>
