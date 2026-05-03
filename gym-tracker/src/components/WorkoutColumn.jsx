@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import ExerciseCard from './ExerciseCard'
 import CardioCard from './CardioCard'
+import SupersetCard from './SupersetCard'
 import InstructionPanel from './InstructionPanel'
 import { supabase } from '../supabase'
 import { getTodayName, DAYS_OF_WEEK } from '../utils/progression'
 
 export default function WorkoutColumn({ userId, userName, soloInstructionMode }) {
-  const [schedule, setSchedule] = useState([]) // ordered exercises for today
+  const [schedule, setSchedule] = useState([]) // ordered exercises for today with superset_id
   const [currentIndex, setCurrentIndex] = useState(0)
   const [configs, setConfigs] = useState({})
   const [mainLifts, setMainLifts] = useState({})
@@ -17,6 +18,7 @@ export default function WorkoutColumn({ userId, userName, soloInstructionMode })
   const [showingNextInstruction, setShowingNextInstruction] = useState(false)
   const [workoutDone, setWorkoutDone] = useState(false)
   const [selectedDay, setSelectedDay] = useState(getTodayName())
+  const [restTimer, setRestTimer] = useState(null)
 
   useEffect(() => {
     setSelectedDay(getTodayName())
@@ -31,10 +33,10 @@ export default function WorkoutColumn({ userId, userName, soloInstructionMode })
   async function loadWorkout() {
     setLoading(true)
 
-    // Load schedule for selected day
+    // Load schedule for selected day (including superset_id)
     const { data: schedData } = await supabase
       .from('schedules')
-      .select('sort_order, exercises(*)')
+      .select('sort_order, superset_id, exercises(*)')
       .eq('user_id', userId)
       .eq('day_of_week', selectedDay)
       .order('sort_order')
@@ -44,9 +46,10 @@ export default function WorkoutColumn({ userId, userName, soloInstructionMode })
       return
     }
 
-    const exercises = schedData.map(s => s.exercises)
-    setSchedule(exercises)
+    // Store full schedule data (including superset_id)
+    setSchedule(schedData)
 
+    const exercises = schedData.map(s => s.exercises)
     const exerciseIds = exercises.map(e => e.id)
 
     // Load configs
@@ -122,10 +125,27 @@ export default function WorkoutColumn({ userId, userName, soloInstructionMode })
 
   function handleExerciseComplete() {
     setShowingNextInstruction(false)
-    if (currentIndex >= schedule.length - 1) {
-      setWorkoutDone(true)
+    
+    const currentSupersetId = schedule[currentIndex]?.superset_id
+    
+    if (currentSupersetId) {
+      // If current exercise is part of a superset, skip to the first exercise after the superset
+      const supersetEndIndex = schedule.findIndex(
+        (s, idx) => idx > currentIndex && s.superset_id !== currentSupersetId
+      )
+      if (supersetEndIndex === -1) {
+        // No more exercises after this superset
+        setWorkoutDone(true)
+      } else {
+        setCurrentIndex(supersetEndIndex)
+      }
     } else {
-      setCurrentIndex(i => i + 1)
+      // Regular exercise
+      if (currentIndex >= schedule.length - 1) {
+        setWorkoutDone(true)
+      } else {
+        setCurrentIndex(i => i + 1)
+      }
     }
   }
 
@@ -156,14 +176,30 @@ export default function WorkoutColumn({ userId, userName, soloInstructionMode })
     </div>
   )
 
-  const currentExercise = schedule[currentIndex]
-  const nextExercise = schedule[currentIndex + 1] || null
+  const currentScheduleItem = schedule[currentIndex]
+  const currentExercise = currentScheduleItem?.exercises
+  const nextExerciseItem = schedule[currentIndex + 1]
+  const nextExercise = nextExerciseItem?.exercises || null
   const config = configs[currentExercise?.id]
   const mainLift = mainLifts[currentExercise?.id]
   const accessory = accessoryWeights[currentExercise?.id]
   const prevLogs = previousLogs[currentExercise?.id] || []
   const prevCardioLog = previousCardioLogs[currentExercise?.id] || null
   const isCardio = config?.exercise_type === 'cardio'
+  const isSuperset = currentScheduleItem?.superset_id
+
+  // If part of a superset, get all exercises in the superset
+  const supersetExercises = isSuperset 
+    ? schedule
+        .filter(s => s.superset_id === currentScheduleItem.superset_id)
+        .map(s => ({
+          id: s.exercises.id,
+          name: s.exercises.name,
+          config: configs[s.exercises.id],
+          mainLift: mainLifts[s.exercises.id],
+          lastLogs: previousLogs[s.exercises.id] || [],
+        }))
+    : null
 
   // Progress bar
   const progress = currentIndex / schedule.length
@@ -186,7 +222,14 @@ export default function WorkoutColumn({ userId, userName, soloInstructionMode })
 
       {/* Main content */}
       <div className="column-content">
-        {soloInstructionMode && !isCardio ? (
+        {isSuperset ? (
+          // Superset: render all exercises in the superset
+          <SupersetCard
+            exercises={supersetExercises}
+            userId={userId}
+            onExerciseComplete={handleExerciseComplete}
+          />
+        ) : soloInstructionMode && !isCardio ? (
           // Solo mode: tracker left, instruction right (strength only)
           <>
             <ExerciseCard

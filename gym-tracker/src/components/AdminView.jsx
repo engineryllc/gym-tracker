@@ -255,6 +255,43 @@ export default function AdminView() {
     setAccessoryWeights(aw => aw.map(w => w.id === id ? { ...w, increase_suggested: false } : w))
   }
 
+  // --- Superset management ---
+  async function createSuperset(selectedScheduleIds) {
+    if (selectedScheduleIds.length < 2) {
+      showToast('Select 2 or more exercises to create a superset', 'error')
+      return
+    }
+    
+    const supersetId = Math.random().toString(36).substr(2, 9) // Simple UUID-like ID
+    setLoading(true)
+    try {
+      // Update all selected schedules with the superset_id
+      await Promise.all(
+        selectedScheduleIds.map(schedId =>
+          supabase.from('schedules').update({ superset_id: supersetId }).eq('id', schedId)
+        )
+      )
+      
+      // Reload schedule
+      await loadSchedule()
+      showToast('Superset created!')
+    } catch (err) {
+      showToast(`Error creating superset: ${err.message}`, 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function removeFromSuperset(schedId) {
+    try {
+      await supabase.from('schedules').update({ superset_id: null }).eq('id', schedId)
+      await loadSchedule()
+      showToast('Removed from superset')
+    } catch (err) {
+      showToast(`Error: ${err.message}`, 'error')
+    }
+  }
+
   // --- Render tabs ---
   return (
     <div className="admin-view">
@@ -307,6 +344,8 @@ export default function AdminView() {
             onUpdateConfig={updateConfig}
             onToggleMainLift={toggleMainLift}
             onUpdateMainLift={updateMainLift}
+            onCreateSuperset={createSuperset}
+            onRemoveFromSuperset={removeFromSuperset}
             userName={selectedUser.name}
           />
         )}
@@ -343,9 +382,10 @@ export default function AdminView() {
 
 // --- Sub-tabs ---
 
-function ScheduleTab({ days, selectedDay, onDayChange, schedule, exercises, configs, mainLifts, onAdd, onRemove, onMove, onUpdateConfig, onToggleMainLift, onUpdateMainLift, userName }) {
+function ScheduleTab({ days, selectedDay, onDayChange, schedule, exercises, configs, mainLifts, onAdd, onRemove, onMove, onUpdateConfig, onToggleMainLift, onUpdateMainLift, onCreateSuperset, onRemoveFromSuperset, userName }) {
   const [addEx, setAddEx] = useState('')
   const [expanded, setExpanded] = useState(null)
+  const [selected, setSelected] = useState(new Set())
 
   return (
     <div className="admin-section">
@@ -359,6 +399,21 @@ function ScheduleTab({ days, selectedDay, onDayChange, schedule, exercises, conf
         ))}
       </div>
 
+      {selected.size > 0 && (
+        <div className="superset-toolbar">
+          <span>{selected.size} selected</span>
+          <button className="create-superset-btn" onClick={() => {
+            onCreateSuperset(Array.from(selected))
+            setSelected(new Set())
+          }}>
+            ⛓️ Create Superset
+          </button>
+          <button className="cancel-selection-btn" onClick={() => setSelected(new Set())}>
+            Cancel
+          </button>
+        </div>
+      )}
+
       <div className="schedule-list">
         {schedule.map((s, idx) => {
           const ex = s.exercises
@@ -369,14 +424,30 @@ function ScheduleTab({ days, selectedDay, onDayChange, schedule, exercises, conf
           return (
             <div key={s.id} className="schedule-item">
               <div className="schedule-item-header" onClick={() => setExpanded(isOpen ? null : s.id)}>
+                <input 
+                  type="checkbox" 
+                  className="schedule-item-checkbox"
+                  checked={selected.has(s.id)}
+                  onChange={e => {
+                    e.stopPropagation()
+                    const newSelected = new Set(selected)
+                    if (e.target.checked) newSelected.add(s.id)
+                    else newSelected.delete(s.id)
+                    setSelected(newSelected)
+                  }}
+                />
                 <div className="schedule-item-order">{idx + 1}</div>
                 <div className="schedule-item-name">{ex.name}</div>
+                {s.superset_id && <div className="superset-badge">⛓️ Superset</div>}
                 <div className="schedule-item-meta">
                   {cfg.exercise_type === 'cardio' 
                     ? `${cfg.target_duration ? cfg.target_duration + ' min' : 'Cardio'} ${cfg.target_distance ? '@ ' + cfg.target_distance : ''}`
                     : `${cfg.sets}×${cfg.rep_target} ${cfg.is_main_lift ? '🏋️' : ''}`}
                 </div>
                 <div className="schedule-item-actions">
+                  {s.superset_id && (
+                    <button onClick={e => { e.stopPropagation(); onRemoveFromSuperset(s.id) }} title="Remove from superset">🔗</button>
+                  )}
                   <button onClick={e => { e.stopPropagation(); onMove(s.id, -1) }}>↑</button>
                   <button onClick={e => { e.stopPropagation(); onMove(s.id, 1) }}>↓</button>
                   <button className="remove-btn" onClick={e => { e.stopPropagation(); onRemove(s.id, ex.name) }}>✕</button>
