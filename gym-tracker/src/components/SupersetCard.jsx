@@ -16,6 +16,7 @@ export default function SupersetCard({ exercises, userId, onExerciseComplete }) 
 
   async function handleSetComplete(exerciseId, setData) {
     try {
+      console.log('Logging set for exercise:', exerciseId, 'setData:', setData)
       // Log to workout_logs
       const { error } = await supabase.from('workout_logs').insert({
         user_id: userId,
@@ -32,7 +33,12 @@ export default function SupersetCard({ exercises, userId, onExerciseComplete }) 
       }
 
       // Mark this exercise as completed in current set
-      setCompleted(c => ({ ...c, [exerciseId]: true }))
+      console.log('Marking exercise as completed:', exerciseId)
+      setCompleted(c => {
+        const updated = { ...c, [exerciseId]: true }
+        console.log('Updated completed state:', updated)
+        return updated
+      })
     } catch (err) {
       console.error('Error logging set:', err)
     }
@@ -78,6 +84,8 @@ export default function SupersetCard({ exercises, userId, onExerciseComplete }) 
               const prevReps = lastLogsForCurrentSet?.reps_completed || exercise.config?.rep_target || '8-12'
               const isExCompleted = completed[exercise.id]
               
+              console.log(`Exercise ${exercise.id} (${exercise.name}): completed=${isExCompleted}`)
+              
               return (
                 <div key={exercise.id} className="superset-row">
                   <div className="superset-exercise-name">{exercise.name}</div>
@@ -95,6 +103,7 @@ export default function SupersetCard({ exercises, userId, onExerciseComplete }) 
           </div>
 
           <div className="superset-actions">
+            {console.log('allExercisesCompleted:', allExercisesCompleted, 'completed state:', completed, 'exercises:', exercises.map(e => e.id))}
             {allExercisesCompleted ? (
               <button className="next-set-btn" onClick={handleNextSet}>
                 {currentSet < sets - 1 ? '↓ Next Set' : '✓ Finish'}
