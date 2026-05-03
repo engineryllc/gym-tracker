@@ -397,18 +397,18 @@ function ScheduleTab({ days, selectedDay, onDayChange, schedule, exercises, conf
                     <>
                       <div className="config-row">
                         <label>Target Duration (min)</label>
-                        <input type="number" defaultValue={cfg.target_duration || ''} onBlur={e => onUpdateConfig(ex.id, { target_duration: parseInt(e.target.value) || null })} placeholder="Optional" />
+                        <input type="number" defaultValue={cfg.target_duration || ''} onChange={e => onUpdateConfig(ex.id, { target_duration: parseInt(e.target.value) || null })} onBlur={e => onUpdateConfig(ex.id, { target_duration: parseInt(e.target.value) || null })} placeholder="Optional" />
                       </div>
                       <div className="config-row">
                         <label>Target Distance</label>
-                        <input type="number" step="0.1" defaultValue={cfg.target_distance || ''} onBlur={e => onUpdateConfig(ex.id, { target_distance: parseFloat(e.target.value) || null })} placeholder="Optional" />
+                        <input type="number" step="0.1" defaultValue={cfg.target_distance || ''} onChange={e => onUpdateConfig(ex.id, { target_distance: parseFloat(e.target.value) || null })} onBlur={e => onUpdateConfig(ex.id, { target_distance: parseFloat(e.target.value) || null })} placeholder="Optional" />
                       </div>
                     </>
                   ) : (
                     <>
                       <div className="config-row">
                         <label>Sets</label>
-                        <input type="number" defaultValue={cfg.sets ?? 3} onBlur={e => onUpdateConfig(ex.id, { sets: parseInt(e.target.value) || 3 })} />
+                        <input type="number" defaultValue={cfg.sets ?? 3} onChange={e => onUpdateConfig(ex.id, { sets: parseInt(e.target.value) || 3 })} onBlur={e => onUpdateConfig(ex.id, { sets: parseInt(e.target.value) || 3 })} />
                       </div>
                       <div className="config-row">
                         <label>Rep Target</label>
@@ -420,7 +420,7 @@ function ScheduleTab({ days, selectedDay, onDayChange, schedule, exercises, conf
                       </div>
                       <div className="config-row">
                         <label>Rest (sec)</label>
-                        <input type="number" defaultValue={cfg.rest_seconds ?? 90} onBlur={e => onUpdateConfig(ex.id, { rest_seconds: parseInt(e.target.value) || 90 })} />
+                        <input type="number" defaultValue={cfg.rest_seconds ?? 90} onChange={e => onUpdateConfig(ex.id, { rest_seconds: parseInt(e.target.value) || 90 })} onBlur={e => onUpdateConfig(ex.id, { rest_seconds: parseInt(e.target.value) || 90 })} />
                       </div>
                       <div className="config-row">
                         <label>Main Lift (1RM)</label>
@@ -430,7 +430,7 @@ function ScheduleTab({ days, selectedDay, onDayChange, schedule, exercises, conf
                         <>
                           <div className="config-row">
                             <label>1RM (lb)</label>
-                            <input type="number" defaultValue={ml.one_rep_max} onBlur={e => onUpdateMainLift(ex.id, { one_rep_max: parseFloat(e.target.value) })} />
+                            <input type="number" defaultValue={ml.one_rep_max} onChange={e => onUpdateMainLift(ex.id, { one_rep_max: parseFloat(e.target.value) })} onBlur={e => onUpdateMainLift(ex.id, { one_rep_max: parseFloat(e.target.value) })} />
                           </div>
                           <div className="config-row">
                             <label>Cycle Week</label>
