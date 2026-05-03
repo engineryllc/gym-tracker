@@ -6,7 +6,6 @@ import RestTimer from './RestTimer'
 export default function SupersetCard({ exercises, userId, onExerciseComplete }) {
   const [currentSet, setCurrentSet] = useState(0)
   const [completed, setCompleted] = useState({})
-  const [loading, setLoading] = useState(false)
   const [restTime, setRestTime] = useState(null)
 
   const sets = exercises[0]?.config?.sets || 3
@@ -16,11 +15,7 @@ export default function SupersetCard({ exercises, userId, onExerciseComplete }) 
   const allExercisesCompleted = exercises.every(ex => completed[ex.id])
 
   async function handleSetComplete(exerciseId, setData) {
-    setLoading(true)
     try {
-      const exercise = exercises.find(e => e.id === exerciseId)
-      if (!exercise) return
-
       // Log to workout_logs
       const { error } = await supabase.from('workout_logs').insert({
         user_id: userId,
@@ -31,18 +26,20 @@ export default function SupersetCard({ exercises, userId, onExerciseComplete }) 
         logged_at: new Date().toISOString(),
       })
 
-      if (error) throw error
+      if (error) {
+        console.error('Error logging set:', error)
+        return
+      }
 
       // Mark this exercise as completed in current set
       setCompleted(c => ({ ...c, [exerciseId]: true }))
     } catch (err) {
       console.error('Error logging set:', err)
-    } finally {
-      setLoading(false)
     }
   }
 
   function handleNextSet() {
+    console.log('Next set clicked, rest time:', restSeconds)
     // Start rest timer
     setRestTime(restSeconds)
   }
@@ -99,7 +96,7 @@ export default function SupersetCard({ exercises, userId, onExerciseComplete }) 
 
           <div className="superset-actions">
             {allExercisesCompleted ? (
-              <button className="next-set-btn" onClick={handleNextSet} disabled={loading}>
+              <button className="next-set-btn" onClick={handleNextSet}>
                 {currentSet < sets - 1 ? '↓ Next Set' : '✓ Finish'}
               </button>
             ) : (
