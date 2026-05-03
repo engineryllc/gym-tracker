@@ -22,8 +22,8 @@ export default function SupersetCard({ exercises, userId, onExerciseComplete }) 
         user_id: userId,
         exercise_id: exerciseId,
         set_number: setData.setNumber,
-        weight: setData.weightUsed,
-        reps: setData.repsCompleted,
+        weight_used: setData.weightUsed,
+        reps_completed: setData.repsCompleted,
         logged_at: new Date().toISOString(),
       })
 
