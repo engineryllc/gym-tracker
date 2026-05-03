@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { supabase } from '../supabase'
 import SetRow from './SetRow'
 import RestTimer from './RestTimer'
 
 export default function SupersetCard({ exercises, userId, onExerciseComplete }) {
-  // exercises is array of { id, name, config, mainLift, lastLogs }
   const [currentSet, setCurrentSet] = useState(0)
   const [completed, setCompleted] = useState({})
   const [loading, setLoading] = useState(false)
@@ -16,7 +15,7 @@ export default function SupersetCard({ exercises, userId, onExerciseComplete }) 
   // Track completion for each exercise at current set
   const allExercisesCompleted = exercises.every(ex => completed[ex.id])
 
-  async function handleSetComplete(exerciseId, weight, reps) {
+  async function handleSetComplete(exerciseId, setData) {
     setLoading(true)
     try {
       const exercise = exercises.find(e => e.id === exerciseId)
@@ -26,9 +25,9 @@ export default function SupersetCard({ exercises, userId, onExerciseComplete }) 
       const { error } = await supabase.from('workout_logs').insert({
         user_id: userId,
         exercise_id: exerciseId,
-        set_number: currentSet + 1,
-        weight,
-        reps,
+        set_number: setData.setNumber,
+        weight: setData.weightUsed,
+        reps: setData.repsCompleted,
         logged_at: new Date().toISOString(),
       })
 
@@ -43,14 +42,9 @@ export default function SupersetCard({ exercises, userId, onExerciseComplete }) 
     }
   }
 
-  async function handleNextSet() {
-    if (currentSet < sets - 1) {
-      // Start rest timer between sets
-      setRestTime(restSeconds)
-    } else {
-      // All sets complete - finish superset
-      setRestTime(restSeconds)
-    }
+  function handleNextSet() {
+    // Start rest timer
+    setRestTime(restSeconds)
   }
 
   function handleTimerDismiss() {
@@ -81,25 +75,37 @@ export default function SupersetCard({ exercises, userId, onExerciseComplete }) 
           </div>
 
           <div className="superset-block">
-            {exercises.map((exercise, idx) => (
-              <div key={exercise.id} className="superset-row">
-                <div className="superset-exercise-name">{exercise.name}</div>
-                <SetRow
-                  exercise={exercise}
-                  setNumber={currentSet + 1}
-                  lastLog={exercise.lastLogs?.[currentSet]}
-                  onComplete={(weight, reps) => handleSetComplete(exercise.id, weight, reps)}
-                  isCompleted={completed[exercise.id]}
-                />
-              </div>
-            ))}
+            {exercises.map((exercise) => {
+              const lastLogsForCurrentSet = exercise.lastLogs?.[currentSet]
+              const prevWeight = lastLogsForCurrentSet?.weight_used || 0
+              const prevReps = lastLogsForCurrentSet?.reps_completed || exercise.config?.rep_target || '8-12'
+              const isExCompleted = completed[exercise.id]
+              
+              return (
+                <div key={exercise.id} className="superset-row">
+                  <div className="superset-exercise-name">{exercise.name}</div>
+                  <SetRow
+                    setNum={currentSet + 1}
+                    targetWeight={prevWeight}
+                    targetReps={typeof prevReps === 'string' ? parseInt(prevReps.split('-')[0]) : prevReps}
+                    previousLog={lastLogsForCurrentSet ? { weight_used: lastLogsForCurrentSet.weight_used, reps_completed: lastLogsForCurrentSet.reps_completed } : null}
+                    onComplete={(setData) => handleSetComplete(exercise.id, setData)}
+                    disabled={false}
+                  />
+                </div>
+              )
+            })}
           </div>
 
           <div className="superset-actions">
-            {allExercisesCompleted && (
+            {allExercisesCompleted ? (
               <button className="next-set-btn" onClick={handleNextSet} disabled={loading}>
                 {currentSet < sets - 1 ? '↓ Next Set' : '✓ Finish'}
               </button>
+            ) : (
+              <div className="superset-status">
+                Complete all exercises to proceed
+              </div>
             )}
           </div>
         </>
@@ -107,3 +113,4 @@ export default function SupersetCard({ exercises, userId, onExerciseComplete }) 
     </div>
   )
 }
+
