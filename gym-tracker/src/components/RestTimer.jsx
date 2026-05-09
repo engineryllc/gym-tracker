@@ -10,9 +10,17 @@ export default function RestTimer({ seconds, onDismiss }) {
       setRemaining(prev => {
         if (prev <= 1) {
           clearInterval(intervalRef.current)
+          // Vibrate on final buzz
+          if (navigator.vibrate) {
+            navigator.vibrate([100, 50, 100, 50, 100])
+          }
           // Auto-dismiss when timer reaches 0
           onDismiss()
           return 0
+        }
+        // Vibrate on each tick
+        if (navigator.vibrate) {
+          navigator.vibrate(100)
         }
         return prev - 1
       })
