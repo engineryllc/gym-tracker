@@ -56,6 +56,19 @@ export default function ExerciseCard({
       weight_used: setData.weightUsed,
     })
 
+    // Update target weight if it was 0 and a weight was recorded
+    if (!isMainLift && accessoryWeight) {
+      const setInfo = sets.find(s => s.setNumber === setData.setNumber)
+      const targetWeight = setInfo?.targetWeight || 0
+      
+      if (targetWeight === 0 && setData.weightUsed > 0) {
+        await supabase.from('accessory_weights')
+          .update({ working_weight: setData.weightUsed })
+          .eq('user_id', userId)
+          .eq('exercise_id', exercise.id)
+      }
+    }
+
     // Start rest timer
     setRestSeconds(config?.rest_seconds || 90)
     setRestActive(true)
