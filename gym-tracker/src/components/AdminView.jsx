@@ -19,6 +19,7 @@ export default function AdminView() {
   useEffect(() => { loadBase() }, [])
   useEffect(() => { if (selectedUser && selectedDay) loadSchedule() }, [selectedUser, selectedDay])
   useEffect(() => { if (selectedUser) loadWeights() }, [selectedUser])
+  useEffect(() => { if (selectedUser) loadMainLifts() }, [selectedUser])
   useEffect(() => { if (tab === 'history' && selectedUser) loadHistory() }, [tab, selectedUser])
 
   function showToast(msg, type = 'success') {
@@ -56,15 +57,6 @@ export default function AdminView() {
       const map = {}
       cfgs?.forEach(c => { map[c.exercise_id] = c })
       setConfigs(map)
-
-      const { data: ml } = await supabase
-        .from('main_lift_progress')
-        .select('*')
-        .eq('user_id', selectedUser.id)
-        .in('exercise_id', ids)
-      const mlMap = {}
-      ml?.forEach(m => { mlMap[m.exercise_id] = m })
-      setMainLifts(mlMap)
     }
   }
 
@@ -75,6 +67,16 @@ export default function AdminView() {
       .eq('user_id', selectedUser.id)
       .order('exercises(name)')
     setAccessoryWeights(data || [])
+  }
+
+  async function loadMainLifts() {
+    const { data: ml } = await supabase
+      .from('main_lift_progress')
+      .select('*')
+      .eq('user_id', selectedUser.id)
+    const mlMap = {}
+    ml?.forEach(m => { mlMap[m.exercise_id] = m })
+    setMainLifts(mlMap)
   }
 
   async function loadHistory() {
